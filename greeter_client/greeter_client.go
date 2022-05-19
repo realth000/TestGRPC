@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"os"
 	"testgrpc/proto/greeter"
 	"time"
 )
@@ -19,11 +18,13 @@ const (
 var (
 	flagServerUrl  string
 	flagServerPort uint
+	flagName       string
 )
 
 func init() {
 	flag.StringVar(&flagServerUrl, "u", "", "Server url")
 	flag.UintVar(&flagServerPort, "p", 0, "Server port [0-65535]")
+	flag.StringVar(&flagName, "n", "", "Set client name")
 	flag.Parse()
 	checkFlag()
 }
@@ -51,9 +52,11 @@ func main() {
 	c := greeter.NewGreeterClient(conn)
 
 	// Contact the server and print out its response.
-	name := defaultName
-	if len(os.Args) > 1 {
-		name = os.Args[1]
+	var name string
+	if flagName == "" {
+		name = defaultName
+	} else {
+		name = flagName
 	}
 
 	// A one second context.
