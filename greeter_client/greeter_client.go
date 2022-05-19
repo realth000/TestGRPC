@@ -17,27 +17,32 @@ const (
 )
 
 var (
-	flagPort uint
+	flagServerUrl  string
+	flagServerPort uint
 )
 
 func init() {
-	flag.UintVar(&flagPort, "p", 0, "Running port [0-65535]")
+	flag.StringVar(&flagServerUrl, "u", "", "Server url")
+	flag.UintVar(&flagServerPort, "p", 0, "Server port [0-65535]")
 	flag.Parse()
 	checkFlag()
 }
 
 func checkFlag() {
-	if flagPort == 0 {
-		log.Fatalln("Port not set")
-	} else if flagPort > 65535 {
-		log.Fatalf("Invalid port: %d\n", flagPort)
+	if flagServerUrl == "" {
+		log.Fatalln("Server url not set")
+	}
+	if flagServerPort == 0 {
+		log.Fatalln("Server port not set")
+	} else if flagServerPort > 65535 {
+		log.Fatalf("Invalid port: %d\n", flagServerPort)
 	}
 }
 
 func main() {
 	// Setup connection.
 	//conn, err := grpc.Dial(address, grpc.WithInsecure()) // deprecated
-	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", flagPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("connect failed: %v\n", err)
 	}
