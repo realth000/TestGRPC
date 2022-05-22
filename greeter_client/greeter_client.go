@@ -18,6 +18,7 @@ var (
 	flagName           string
 	actionSayHello     bool
 	actionDownloadFile bool
+	argDownloadPath    string
 )
 
 func init() {
@@ -26,6 +27,7 @@ func init() {
 	flag.StringVar(&flagName, "n", "", "Set client name")
 	flag.BoolVar(&actionSayHello, "sayhello", false, "Say hello to server")
 	flag.BoolVar(&actionDownloadFile, "downloadfile", false, "Download file from server")
+	flag.StringVar(&argDownloadPath, "downloadpath", "", "Specify download path")
 	flag.Parse()
 	checkFlag()
 }
@@ -38,6 +40,9 @@ func checkFlag() {
 		log.Fatalln("Server port not set")
 	} else if flagServerPort > 65535 {
 		log.Fatalf("Invalid port: %d\n", flagServerPort)
+	}
+	if actionDownloadFile && argDownloadPath == "" {
+		log.Fatalf("Download path not set")
 	}
 }
 
@@ -67,7 +72,7 @@ func main() {
 	}
 
 	if actionDownloadFile {
-		DownloadFile(conn, name, "./123")
+		DownloadFile(conn, name, argDownloadPath)
 		log.Printf("download finish")
 	}
 }
