@@ -29,12 +29,18 @@ func DownloadFile(conn *grpc.ClientConn, name string, filePath string) {
 	}
 
 	b := new(bytes.Buffer)
+	// Delete old file
+	_, err = os.Stat(request.FileName)
+	if err == nil {
+		os.Remove(request.FileName)
+	}
+
 	for {
 		size, err := r.Recv()
 
 		if err == io.EOF {
 			log.Println("receive finish")
-			ioutil.WriteFile("new_"+request.FileName, b.Bytes(), 0755|os.ModeAppend)
+			ioutil.WriteFile(request.FileName, b.Bytes(), 0755|os.ModeAppend)
 			break
 		}
 		if err != nil {
