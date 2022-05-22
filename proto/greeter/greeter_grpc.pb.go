@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GreeterClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (Greeter_DownloadFileClient, error)
 }
 
 type greeterClient struct {
@@ -42,11 +43,44 @@ func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...
 	return out, nil
 }
 
+func (c *greeterClient) DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (Greeter_DownloadFileClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Greeter_ServiceDesc.Streams[0], "/greeter.srv.Greeter/DownloadFile", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &greeterDownloadFileClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Greeter_DownloadFileClient interface {
+	Recv() (*DownloadFileReply, error)
+	grpc.ClientStream
+}
+
+type greeterDownloadFileClient struct {
+	grpc.ClientStream
+}
+
+func (x *greeterDownloadFileClient) Recv() (*DownloadFileReply, error) {
+	m := new(DownloadFileReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GreeterServer is the server API for Greeter service.
 // All implementations must embed UnimplementedGreeterServer
 // for forward compatibility
 type GreeterServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+	DownloadFile(*DownloadFileRequest, Greeter_DownloadFileServer) error
 	mustEmbedUnimplementedGreeterServer()
 }
 
@@ -56,6 +90,9 @@ type UnimplementedGreeterServer struct {
 
 func (UnimplementedGreeterServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+}
+func (UnimplementedGreeterServer) DownloadFile(*DownloadFileRequest, Greeter_DownloadFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method DownloadFile not implemented")
 }
 func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
 
@@ -88,6 +125,27 @@ func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Greeter_DownloadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DownloadFileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(GreeterServer).DownloadFile(m, &greeterDownloadFileServer{stream})
+}
+
+type Greeter_DownloadFileServer interface {
+	Send(*DownloadFileReply) error
+	grpc.ServerStream
+}
+
+type greeterDownloadFileServer struct {
+	grpc.ServerStream
+}
+
+func (x *greeterDownloadFileServer) Send(m *DownloadFileReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +158,12 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Greeter_SayHello_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "DownloadFile",
+			Handler:       _Greeter_DownloadFile_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/greeter/greeter.proto",
 }

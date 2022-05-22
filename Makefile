@@ -1,5 +1,5 @@
-SOURCE_SERVER=./greeter_server/greeter_server.go
-SOURCE_CLIENT=./greeter_client/greeter_client.go
+SOURCE_SERVER=$(shell find ./greeter_server/ -name "*.go")
+SOURCE_CLIENT=$(shell find ./greeter_client/ -name "*.go")
 TARGET_SERVER=server
 TARGET_CLIENT=client
 GO_CMD=go
@@ -11,7 +11,11 @@ export CGO_CFLAGS=$(GO_CFLAGS)
 export CGO_CXXFLAGS=$(GO_CFLAGS)
 
 .PHONY: all
-all: server client
+all: protobuf server client
+
+.PHONY: protobuf
+protobuf:
+	$(shell protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/greeter/greeter.proto)
 
 .PHONY: server
 server:

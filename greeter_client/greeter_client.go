@@ -1,14 +1,11 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"testgrpc/proto/greeter"
-	"time"
 )
 
 const (
@@ -49,8 +46,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	c := greeter.NewGreeterClient(conn)
-
 	// Contact the server and print out its response.
 	var name string
 	if flagName == "" {
@@ -59,12 +54,10 @@ func main() {
 		name = flagName
 	}
 
-	// A one second context.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := c.SayHello(ctx, &greeter.HelloRequest{Name: name})
+	r, err := SayHello(conn, name, "1/2/")
 	if err != nil {
-		log.Fatalf("could not greet: %v\n", err)
+		log.Fatalf("error greeting: %v\n", err)
 	}
 	log.Printf("successful greet: %s", r.Message)
+	DownloadFile(conn, name, "./123")
 }

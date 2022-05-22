@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"log"
+	"math"
 	"net"
+	"os"
 	"testgrpc/proto/greeter"
 )
 
@@ -36,6 +38,38 @@ func (s *server) SayHello(ctx context.Context, req *greeter.HelloRequest) (rsp *
 	rsp = &greeter.HelloReply{Message: "Hello" + req.Name}
 	log.Printf("Say Hello to %v\n", ctx)
 	return rsp, nil
+}
+
+func (s *server) DownloadFile(req *greeter.DownloadFileRequest, stream greeter.Greeter_DownloadFileServer) error {
+	file, err := os.Open(req.FilePath)
+	if err != nil {
+		log.Printf("error download file to client: %v\n", err)
+		return err
+	}
+	defer file.Close()
+	fileInfo, _ := file.Stat()
+
+	var fileSize int64 = fileInfo.Size()
+	const fileChunk = 1 * (1 << 20) // 1 MB, change this to your requirement
+	totalPartsNum := uint64(math.Ceil(float64(fileSize) / float64(fileChunk)))
+	fmt.Printf("Splitting to %d pieces.\n", totalPartsNum)
+	for i := uint64(0); i < totalPartsNum; i++ {
+		partSize := int(math.Min(fileChunk, float64(fileSize-int64(i*fileChunk))))
+		partBuffer := make([]byte, partSize)
+		file.Read(partBuffer)
+		resp := &greeter.DownloadFileReply{
+			FilePart: partBuffer,
+			Process:  int32(i),
+			Total:    int32(totalPartsNum),
+		}
+
+		err = stream.Send(resp)
+		if err != nil {
+			log.Println("error while sending chunk:", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func main() {
