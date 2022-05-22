@@ -13,22 +13,26 @@ const (
 )
 
 var (
-	flagServerUrl  string
-	flagServerPort uint
-	flagName       string
+	flagServerUrl      string
+	flagServerPort     uint
+	flagName           string
+	actionSayHello     bool
+	actionDownloadFile bool
 )
 
 func init() {
 	flag.StringVar(&flagServerUrl, "u", "", "Server url")
 	flag.UintVar(&flagServerPort, "p", 0, "Server port [0-65535]")
 	flag.StringVar(&flagName, "n", "", "Set client name")
+	flag.BoolVar(&actionSayHello, "sayhello", false, "Say hello to server")
+	flag.BoolVar(&actionDownloadFile, "downloadfile", false, "Download file from server")
 	flag.Parse()
 	checkFlag()
 }
 
 func checkFlag() {
 	if flagServerUrl == "" {
-		log.Fatalln("Server url not set")
+		flagServerUrl = "localhost"
 	}
 	if flagServerPort == 0 {
 		log.Fatalln("Server port not set")
@@ -54,10 +58,16 @@ func main() {
 		name = flagName
 	}
 
-	r, err := SayHello(conn, name, "1/2/")
-	if err != nil {
-		log.Fatalf("error greeting: %v\n", err)
+	if actionSayHello {
+		r, err := SayHello(conn, name, "1/2/")
+		if err != nil {
+			log.Fatalf("error greeting: %v\n", err)
+		}
+		log.Printf("successful greet: %s", r.Message)
 	}
-	log.Printf("successful greet: %s", r.Message)
-	DownloadFile(conn, name, "./123")
+
+	if actionDownloadFile {
+		DownloadFile(conn, name, "./123")
+		log.Printf("download finish")
+	}
 }
