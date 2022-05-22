@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"google.golang.org/grpc"
 	"io"
 	"io/ioutil"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testgrpc/proto/greeter"
+	"testgrpc/util/progress_bar"
 	"time"
 )
 
@@ -47,7 +47,7 @@ func DownloadFile(conn *grpc.ClientConn, name string, filePath string) {
 			log.Fatalf("error receving file:%v\n", err)
 			break
 		}
-		fmt.Println(100 * size.Process / size.Total)
+		progress_bar.UpdateProgress(request.FileName, int(100*size.Process/size.Total))
 		b.Write(size.FilePart)
 	}
 }
