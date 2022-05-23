@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func SayHello(conn *grpc.ClientConn, name string, filePath string) (*greeter.HelloReply, error) {
+func SayHello(conn *grpc.ClientConn, name string) (*greeter.HelloReply, error) {
 	c := greeter.NewGreeterClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

@@ -64,7 +64,7 @@ func main() {
 	}
 
 	if actionSayHello {
-		r, err := SayHello(conn, name, "1/2/")
+		r, err := SayHello(conn, name)
 		if err != nil {
 			log.Fatalf("error greeting: %v\n", err)
 		}
