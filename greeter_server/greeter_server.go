@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
@@ -9,15 +10,18 @@ import (
 	"math"
 	"net"
 	"os"
+	"testgrpc/greeter_server/check_permission"
 	"testgrpc/proto/greeter"
 )
 
 var (
-	flagPort uint
+	flagPort          uint
+	argPermitConfFile string
 )
 
 func init() {
 	flag.UintVar(&flagPort, "p", 0, "Running port [0-65535]")
+	flag.StringVar(&argPermitConfFile, "permitfile", "", "--permitfile [filepath] Load permission(permit) config file")
 	flag.Parse()
 	checkFlag()
 }
@@ -41,6 +45,10 @@ func (s *server) SayHello(ctx context.Context, req *greeter.HelloRequest) (rsp *
 }
 
 func (s *server) DownloadFile(req *greeter.DownloadFileRequest, stream greeter.Greeter_DownloadFileServer) error {
+	if !check_permission.CheckPathPermission(req.FilePath) {
+		return errors.New("permission denied")
+	}
+
 	file, err := os.Open(req.FilePath)
 	if err != nil {
 		log.Printf("error download file to client: %v\n", err)
@@ -76,6 +84,11 @@ func main() {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", flagPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v\n", err)
+	}
+
+	err = check_permission.LoadPermission(argPermitConfFile)
+	if err != nil {
+		log.Fatalf("error loading permission:%v\n", err)
 	}
 
 	// gRPC server.
