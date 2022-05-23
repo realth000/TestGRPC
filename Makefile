@@ -1,5 +1,5 @@
-SOURCE_SERVER=$(shell find ./greeter_server/ -name "*.go")
-SOURCE_CLIENT=$(shell find ./greeter_client/ -name "*.go")
+SOURCE_SERVER=$(shell find ./greeter_server/ -maxdepth 1 -type f -name "*.go")
+SOURCE_CLIENT=$(shell find ./greeter_client/ -maxdepth 1 -type f -name "*.go")
 TARGET_SERVER=server
 TARGET_CLIENT=client
 GO_CMD=go
