@@ -28,16 +28,7 @@ message DownloadFileRequest {
 
 // The request message containing the file.
 message DownloadFileReply {
-  FileStatus fileStatus = 1;
   bytes filePart = 2;
   int32 process = 3;
   int32 total = 4;
-}
-
-enum FileStatus {
-  FILE_SUCCESS = 0;
-  FILE_NOT_FOUND = 1;
-  FILE_CAN_NOT_READ = 2;
-  FILE_TRANSPORT_FORBIDDEN = 3;
-  UNKNOWN_STATUS = 99;
 }

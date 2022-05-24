@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"math"
 	"net"
@@ -46,13 +47,16 @@ func (s *server) SayHello(ctx context.Context, req *greeter.HelloRequest) (rsp *
 
 func (s *server) DownloadFile(req *greeter.DownloadFileRequest, stream greeter.Greeter_DownloadFileServer) error {
 	if !check_permission.CheckPathPermission(req.FilePath) {
-		return errors.New("permission denied")
+		e := status.Error(codes.PermissionDenied, "denied to access this file")
+		log.Printf("client=%s, %s", req.ClientName, e)
+		return e
 	}
 
 	file, err := os.Open(req.FilePath)
 	if err != nil {
-		log.Printf("error download file to client: %v\n", err)
-		return err
+		e := status.Error(codes.NotFound, "can not open this file"+err.Error())
+		log.Printf("client=%s, %s", req.ClientName, e)
+		return e
 	}
 	defer file.Close()
 	fileInfo, _ := file.Stat()
