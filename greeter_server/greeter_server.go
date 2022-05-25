@@ -22,17 +22,21 @@ import (
 var (
 	flagPort          uint
 	flagDisableSSL    bool
+	flagMutualAuth    bool
 	argPermitConfFile string
 	argSSLCertPath    string
 	argSSLKeyPath     string
+	argSSLCACertPath  string
 )
 
 func init() {
 	flag.UintVar(&flagPort, "p", 0, "Running port [0-65535]")
 	flag.BoolVar(&flagDisableSSL, "disablessl", false, "disable ssl(use http instead of https)")
+	flag.BoolVar(&flagMutualAuth, "mutualAuth", true, "use mutual authentication in SSL handshake")
 	flag.StringVar(&argPermitConfFile, "permitfile", "", "--permitfile [filepath] Load permission(permit) config file")
-	flag.StringVar(&argSSLCertPath, "cert", "", "SSL credential file path")
-	flag.StringVar(&argSSLKeyPath, "key", "", "SSL private key file path")
+	flag.StringVar(&argSSLCertPath, "cert", "", "SSL credential file[*.pem] path")
+	flag.StringVar(&argSSLKeyPath, "key", "", "SSL private key file[*.key] path")
+	flag.StringVar(&argSSLCACertPath, "cacert", "", "CA credential file[*.pem] path")
 	flag.Parse()
 	checkFlag()
 }
@@ -45,10 +49,13 @@ func checkFlag() {
 	}
 	if !flagDisableSSL {
 		if argSSLCertPath == "" {
-			log.Fatalf("ssl enabled, but credential file not loaded")
+			log.Fatalf("ssl enabled, but credential file[*.pem] not loaded")
 		}
 		if argSSLKeyPath == "" {
-			log.Fatalf("ssl enabled, but private key file not loaded")
+			log.Fatalf("ssl enabled, but private key file[*.key] not loaded")
+		}
+		if flagMutualAuth && argSSLCACertPath == "" {
+			log.Fatalf("mutual authentication enabled, but CA credential file[*.pem] not loaded")
 		}
 	}
 }
@@ -115,32 +122,32 @@ func main() {
 	// gRPC server.
 	var s *grpc.Server
 	if !flagDisableSSL {
-		// new pool
-		cert, err := tls.LoadX509KeyPair(argSSLCertPath, argSSLKeyPath)
-		if err != nil {
-			log.Fatalf("can not load SSL credential:%v", err)
-		}
-		certPool := x509.NewCertPool()
-		credBytes, err := ioutil.ReadFile("./tmp/ca.pem")
-		if err != nil {
-			log.Fatalf("can not load CA credential:%v", err)
-		}
-		certPool.AppendCertsFromPEM(credBytes)
-		cred := credentials.NewTLS(&tls.Config{
-			Certificates: []tls.Certificate{cert},
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			ClientCAs:    certPool,
-		})
-
-		s = grpc.NewServer(grpc.Creds(cred))
-		// old
-		if false {
+		if flagMutualAuth {
+			// Mutual authentication.
+			cert, err := tls.LoadX509KeyPair(argSSLCertPath, argSSLKeyPath)
+			if err != nil {
+				log.Fatalf("can not load SSL credential:%v", err)
+			}
+			certPool := x509.NewCertPool()
+			credBytes, err := ioutil.ReadFile(argSSLCACertPath)
+			if err != nil {
+				log.Fatalf("can not load CA credential:%v", err)
+			}
+			certPool.AppendCertsFromPEM(credBytes)
+			cred := credentials.NewTLS(&tls.Config{
+				Certificates: []tls.Certificate{cert},
+				ClientAuth:   tls.RequireAndVerifyClientCert,
+				ClientCAs:    certPool,
+			})
+			s = grpc.NewServer(grpc.Creds(cred))
+		} else {
 			cred, err := credentials.NewServerTLSFromFile(argSSLCertPath, argSSLKeyPath)
 			if err != nil {
 				log.Fatalf("can not load SSL credential:%v", err)
 			}
 			s = grpc.NewServer(grpc.Creds(cred))
 		}
+
 	} else {
 		s = grpc.NewServer()
 	}
