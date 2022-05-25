@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
+	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -112,11 +115,32 @@ func main() {
 	// gRPC server.
 	var s *grpc.Server
 	if !flagDisableSSL {
-		cred, err := credentials.NewServerTLSFromFile(argSSLCertPath, argSSLKeyPath)
+		// new pool
+		cert, err := tls.LoadX509KeyPair(argSSLCertPath, argSSLKeyPath)
 		if err != nil {
 			log.Fatalf("can not load SSL credential:%v", err)
 		}
+		certPool := x509.NewCertPool()
+		credBytes, err := ioutil.ReadFile("./tmp/ca.pem")
+		if err != nil {
+			log.Fatalf("can not load CA credential:%v", err)
+		}
+		certPool.AppendCertsFromPEM(credBytes)
+		cred := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    certPool,
+		})
+
 		s = grpc.NewServer(grpc.Creds(cred))
+		// old
+		if false {
+			cred, err := credentials.NewServerTLSFromFile(argSSLCertPath, argSSLKeyPath)
+			if err != nil {
+				log.Fatalf("can not load SSL credential:%v", err)
+			}
+			s = grpc.NewServer(grpc.Creds(cred))
+		}
 	} else {
 		s = grpc.NewServer()
 	}

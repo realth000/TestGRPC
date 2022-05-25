@@ -1,11 +1,14 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"io/ioutil"
 	"log"
 )
 
@@ -54,15 +57,41 @@ func main() {
 	// Setup connection.
 	var conn *grpc.ClientConn
 	if argSSLCertPath != "" {
-		cred, err := credentials.NewClientTLSFromFile(argSSLCertPath, "")
+		// new pool
+		cert, err := tls.LoadX509KeyPair("./tmp/client.pem", "./tmp/client.key")
 		if err != nil {
-			log.Fatalf("error ")
+			log.Fatalf("can not load SSL credential:%v", err)
 		}
+
+		certPool := x509.NewCertPool()
+		credBytes, err := ioutil.ReadFile("./tmp/ca.pem")
+		if err != nil {
+			log.Fatalf("can not load CA credential:%v", err)
+		}
+
+		certPool.AppendCertsFromPEM(credBytes)
+		cred := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{cert},
+			//ServerName: "",
+			RootCAs: certPool,
+		})
 		c, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(cred))
 		if err != nil {
 			log.Fatalf("can not dail %s:%d :%v", flagServerUrl, flagServerPort, err)
 		}
 		conn = c
+		// old
+		if false {
+			cred, err := credentials.NewClientTLSFromFile(argSSLCertPath, "")
+			if err != nil {
+				log.Fatalf("error ")
+			}
+			c, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(cred))
+			if err != nil {
+				log.Fatalf("can not dail %s:%d :%v", flagServerUrl, flagServerPort, err)
+			}
+			conn = c
+		}
 	} else {
 		//conn, err := grpc.Dial(address, grpc.WithInsecure()) // deprecated
 		c, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
