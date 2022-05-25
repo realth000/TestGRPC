@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 	"log"
 	"math"
@@ -17,12 +18,18 @@ import (
 
 var (
 	flagPort          uint
+	flagDisableSSL    bool
 	argPermitConfFile string
+	argSSLCertPath    string
+	argSSLKeyPath     string
 )
 
 func init() {
 	flag.UintVar(&flagPort, "p", 0, "Running port [0-65535]")
+	flag.BoolVar(&flagDisableSSL, "disablessl", false, "disable ssl(use http instead of https)")
 	flag.StringVar(&argPermitConfFile, "permitfile", "", "--permitfile [filepath] Load permission(permit) config file")
+	flag.StringVar(&argSSLCertPath, "cert", "", "SSL credential file path")
+	flag.StringVar(&argSSLKeyPath, "key", "", "SSL private key file path")
 	flag.Parse()
 	checkFlag()
 }
@@ -32,6 +39,14 @@ func checkFlag() {
 		log.Fatalln("Port not set")
 	} else if flagPort > 65535 {
 		log.Fatalf("Invalid port: %d\n", flagPort)
+	}
+	if !flagDisableSSL {
+		if argSSLCertPath == "" {
+			log.Fatalf("ssl enabled, but credential file not loaded")
+		}
+		if argSSLKeyPath == "" {
+			log.Fatalf("ssl enabled, but private key file not loaded")
+		}
 	}
 }
 
@@ -94,9 +109,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("error loading permission:%v\n", err)
 	}
-
 	// gRPC server.
-	s := grpc.NewServer()
+	var s *grpc.Server
+	if !flagDisableSSL {
+		cred, err := credentials.NewServerTLSFromFile(argSSLCertPath, argSSLKeyPath)
+		if err != nil {
+			log.Fatalf("can not load SSL credential:%v", err)
+		}
+		s = grpc.NewServer(grpc.Creds(cred))
+	} else {
+		s = grpc.NewServer()
+	}
 	greeter.RegisterGreeterServer(s, &server{})
 
 	// reflection.Register(s)

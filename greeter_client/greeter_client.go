@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 )
@@ -19,6 +20,8 @@ var (
 	actionSayHello     bool
 	actionDownloadFile bool
 	argDownloadPath    string
+	argSSLCertPath     string
+	//argSSLKeyPath      string
 )
 
 func init() {
@@ -28,6 +31,7 @@ func init() {
 	flag.BoolVar(&actionSayHello, "sayhello", false, "Say hello to server")
 	flag.BoolVar(&actionDownloadFile, "downloadfile", false, "Download file from server")
 	flag.StringVar(&argDownloadPath, "downloadpath", "", "Specify download path")
+	flag.StringVar(&argSSLCertPath, "cert", "", "SSL SSL file path")
 	flag.Parse()
 	checkFlag()
 }
@@ -48,11 +52,26 @@ func checkFlag() {
 
 func main() {
 	// Setup connection.
-	//conn, err := grpc.Dial(address, grpc.WithInsecure()) // deprecated
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("connect failed: %v\n", err)
+	var conn *grpc.ClientConn
+	if argSSLCertPath != "" {
+		cred, err := credentials.NewClientTLSFromFile(argSSLCertPath, "")
+		if err != nil {
+			log.Fatalf("error ")
+		}
+		c, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(cred))
+		if err != nil {
+			log.Fatalf("can not dail %s:%d :%v", flagServerUrl, flagServerPort, err)
+		}
+		conn = c
+	} else {
+		//conn, err := grpc.Dial(address, grpc.WithInsecure()) // deprecated
+		c, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("can not dail %s:%d :%v", flagServerUrl, flagServerPort, err)
+		}
+		conn = c
 	}
+
 	defer conn.Close()
 
 	// Contact the server and print out its response.
