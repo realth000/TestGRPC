@@ -98,7 +98,18 @@ func main() {
 				// InsecureSkipVerify should be true to pass self-signed certificate.
 				InsecureSkipVerify: true,
 				// FIXME: Use some custom VerifyConnection to ensure handshake if using self-signed certificate.
-				//VerifyConnection
+				VerifyConnection: func(cs tls.ConnectionState) error {
+					// TODO: Add verify test.
+					opts := x509.VerifyOptions{
+						DNSName:       cs.ServerName,
+						Intermediates: x509.NewCertPool(),
+					}
+					for _, cert := range cs.PeerCertificates[1:] {
+						opts.Intermediates.AddCert(cert)
+					}
+					_, err := cs.PeerCertificates[0].Verify(opts)
+					return err
+				},
 			})
 			c, err := grpc.Dial(fmt.Sprintf("%s:%d", flagServerUrl, flagServerPort), grpc.WithTransportCredentials(cred))
 			if err != nil {
