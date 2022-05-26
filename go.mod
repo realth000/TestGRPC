@@ -3,6 +3,7 @@ module testgrpc
 go 1.18
 
 require (
+	github.com/pelletier/go-toml/v2 v2.0.1
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 )
