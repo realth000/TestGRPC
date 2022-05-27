@@ -3,13 +3,42 @@ package common
 import (
 	"flag"
 	"log"
+	"reflect"
 )
+
+// ConfMap use command line name as map key and a pointer points to its value as map value.
+// Used to store configs from a config file.
+type ConfMap map[string]interface{}
+
+func MakeConfMap(conf *ConfMap, c interface{}) {
+	tc := reflect.TypeOf(c)
+	vc := reflect.ValueOf(c)
+	for f := 0; f < tc.NumField(); f++ {
+		ff := vc.FieldByName(tc.Field(f).Name)
+		switch ff.Kind().String() {
+		case "int":
+			tmp := ff.Int()
+			(*conf)[tc.Field(f).Tag.Get("name")] = &tmp
+		case "uint":
+			tmp := ff.Uint()
+			(*conf)[tc.Field(f).Tag.Get("name")] = &tmp
+		case "string":
+			tmp := ff.String()
+			(*conf)[tc.Field(f).Tag.Get("name")] = &tmp
+		case "bool":
+			tmp := ff.Bool()
+			(*conf)[tc.Field(f).Tag.Get("name")] = &tmp
+		}
+	}
+}
 
 type Config struct {
 	Variable     interface{}
 	Name         string
 	DefaultValue interface{}
 	Usage        string
+	CmdValue     interface{}
+	FileValue    interface{}
 	Override     bool
 	registered   bool
 }
