@@ -6,35 +6,38 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"io/ioutil"
 	"os"
+	"testgrpc/common"
 )
 
-type Config struct {
-	ServerUrl    string `toml:"server_url"`
-	ServerPort   uint   `toml:"serer_port"`
-	ClientName   string `toml:"client_name"`
-	DisableSSL   bool   `toml:"disable_ssl"`
-	MutualAuth   bool   `toml:"mutual_auth"`
-	SayHello     bool   `toml:"say_hello"`
-	DownloadFile bool   `toml:"download_file"`
-	DownloadPath string `toml:"download_path"`
-	Cert         string `toml:"cert"`
-	Key          string `toml:"key"`
-	CACert       string `toml:"ca_cert"`
+type config struct {
+	ServerUrl    string `toml:"server_url" name:"u"`
+	ServerPort   uint   `toml:"serer_port" name:"p"`
+	ClientName   string `toml:"client_name" name:"n"`
+	DisableSSL   bool   `toml:"disable_ssl" name:"disablessl"`
+	MutualAuth   bool   `toml:"mutual_auth" name:"mutualAuth"`
+	SayHello     bool   `toml:"say_hello" name:"sayhello"`
+	DownloadFile bool   `toml:"download_file" name:"downloadfile"`
+	DownloadPath string `toml:"download_path" name:"downloadpath"`
+	Cert         string `toml:"cert" name:"cert"`
+	Key          string `toml:"key" name:"key"`
+	CACert       string `toml:"ca_cert" name:"cacert"`
 }
 
-func LoadConfig(fileConfig string) (Config, error) {
-	var config Config
+func LoadConfig(fileConfig string) (common.ConfMap, error) {
+	var c config
+	var Conf = make(common.ConfMap)
 	configFile, err := os.Open(fileConfig)
 	if err != nil {
-		return Config{}, errors.New(fmt.Sprintf("error loading config:%v", err))
+		return Conf, errors.New(fmt.Sprintf("error loading config:%v", err))
 	}
 	configBytes, err := ioutil.ReadAll(configFile)
 	if err != nil {
-		return Config{}, errors.New(fmt.Sprintf("error reading config:%v", err))
+		return Conf, errors.New(fmt.Sprintf("error reading config:%v", err))
 	}
-	err = toml.Unmarshal(configBytes, &config)
+	err = toml.Unmarshal(configBytes, &c)
 	if err != nil {
-		return Config{}, errors.New(fmt.Sprintf("error unmarshalling config:%v", err))
+		return Conf, errors.New(fmt.Sprintf("error unmarshalling config:%v", err))
 	}
-	return config, nil
+	common.MakeConfMap(&Conf, c)
+	return Conf, nil
 }
