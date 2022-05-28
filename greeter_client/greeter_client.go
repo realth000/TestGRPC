@@ -17,13 +17,14 @@ const (
 )
 
 var (
-	flagServerUrl      string
+	flagServerUrl      string // Command line flag definition.
 	flagServerPort     uint
 	flagName           string
 	flagDisableSSL     bool
 	flagMutualAuth     bool
 	actionSayHello     bool
 	actionDownloadFile bool
+	argConfigFile      string
 	argDownloadPath    string
 	argSSLCertPath     string
 	argSSLKeyPath      string
@@ -38,6 +39,7 @@ func init() {
 	flag.BoolVar(&flagMutualAuth, "mutualAuth", true, "use mutual authentication in SSL handshake")
 	flag.BoolVar(&actionSayHello, "sayhello", false, "Say hello to server")
 	flag.BoolVar(&actionDownloadFile, "downloadfile", false, "Download file from server")
+	flag.StringVar(&argConfigFile, "config", "", "load config file[*.toml]")
 	flag.StringVar(&argDownloadPath, "downloadpath", "", "Specify download path")
 	flag.StringVar(&argSSLCertPath, "cert", "", "SSL credential file[*.pem] path")
 	flag.StringVar(&argSSLKeyPath, "key", "", "SSL private key file[*.key] path")
