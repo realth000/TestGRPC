@@ -1,18 +1,18 @@
-# 生成SSL SAN 证书
+# Create SSL SAN certificates
 
-参考自[gRPC 双向验证、自签名证书](https://juejin.cn/post/7025504258371878919)
+Refer from [gRPC 双向验证、自签名证书](https://juejin.cn/post/7025504258371878919)
 
 ## CA
 
-### 创建一个CA私钥（根证书）
+### Create CA private key (root certificate)
 
 ~~~ shell
 openssl genrsa -out ca.key 4096
 ~~~
 
-### 创建一个conf 用来生成csr（请求签名证书文件）
+### Write a config file to create *.csr
 
-`` vim ca.conf``填入以下内容：
+`` vim ca.conf`` fill with the content below：
 
 > [ req ]
 > default_bits = 4096
@@ -40,7 +40,7 @@ openssl req \
 -config ca.conf
 ~~~
 
-### 生成证书 crt文件
+### Create *.crt certificate
 
 ~~~ shell
 openssl x509 \
@@ -51,30 +51,30 @@ openssl x509 \
 -out ca.crt
 ~~~
 
-### 生成pem文件（用于client证书）
+### Create *.pem for client's certificate
 
 ~~~ shell
 openssl req -new -x509 -key ca.key -out ca.pem -days 36500
 ~~~
 
-* 这一步是生成自签名证书，可以用，但作为CA的证书来说，自签名的没有保障，会在认证时失败（不认CA）。
-* 如果不使用自签名证书，跳过这一步，在client向server发起连接时``InsecureSkipVerify``置为``false``，``VerifyConnection``改为空，自行校验即可。
+* This step is generating a self-signed certificate, it can be used but without guarantee as it was self-signed, which will cause failure in SSL handshake(Unknown authority).
+* Skip this step if not using self-signed certificate, set ``InsecureSkipVerify=false`` and remove ``VerifyConnection`` in client.
 
-* 如果使用自签名证书，在client向server发起连接时``InsecureSkipVerify``置为``true``，``VerifyConnection``的值函数选择安全且有效的验证函数。
-  * 若``InsecureSkipVerify=true``，则会跳过客户端验证服务端身份的过程。
-  * 若``VerifyConnection``设置值函数，则会用该函数验证服务器身份。默认的函数来自[github的issue](https://github.com/golang/go/issues/40748)，尚未验证是否可靠。
+* If using self-signed certificate, set ``InsecureSkipVerify=true`` and set ``VerifyConnection`` with a secure and reliable function when client connect server.
+  * if ``InsecureSkipVerify=true``, the client will not verify server's identity.
+  * if ``VerifyConnection`` set with a function, that function will be used to verify server's identity. The default function in code came from [issue on github](https://github.com/golang/go/issues/40748), and not approved to be actually safe.
 
-## 生成server证书
+## Create server certificate
 
-### 创建server私钥 server.key
+### Create server private key
 
 ~~~ shell
 openssl genrsa -out server.key 4096
 ~~~
 
-### 创建一个conf 用来生成csr
+### Write a config file to create *.csr
 
-`` vim server.conf``填入以下内容：
+`` vim server.conf`` fill with the content below：
 
 > [ req ]
 > default_bits = 4096
@@ -107,7 +107,7 @@ openssl req \
 -config server.conf
 ~~~
 
-### 生成server.crt和server.pem
+### Create server.crt and server.pem
 
 ~~~ shell
 openssl x509 \
@@ -122,33 +122,33 @@ openssl x509 \
 -extfile server.conf
 ~~~
 
-## 创建client证书
+## Create client certificate
 
-### 生成client.key
+### Create client.key
 
 ~~~ shell
 openssl ecparam -genkey -name secp384r1 -out client.key
 ~~~
 
-### 生成client.csr
+### Create client.csr
 
 ~~~ shell
 openssl req -new -key client.key -out client.csr -config server.conf
 ~~~
 
-### 生成client.pem
+### Create client.pem
 
 ~~~ shell
 openssl x509 -req -sha256 -CA ca.pem -CAkey ca.key -CAcreateserial -days 3650 -in client.csr -out client.pem -extensions req_ext -extfile server.conf
 ~~~
 
-## 使用例(1)
+## Example(1)
 
-* [原文](https://juejin.cn/post/7025504258371878919)使用例。
-* 使用证书池。
-* 使用双向认证。
-* 使用自签名证书时需要按前文所说修改``InsecureSkipVerify``和``VerifyConnection``。
-* client使用client.pem和client.key。
+* [Original](https://juejin.cn/post/7025504258371878919) example。
+* Use certificates pool。
+* Use mutual authentication。
+* Need to modify ``InsecureSkipVerify`` and ``VerifyConnection`` as above if using self-signed certificate。
+* Client uses client.pem and client.key。
 
 ### server
 
@@ -237,11 +237,11 @@ openssl x509 -req -sha256 -CA ca.pem -CAkey ca.key -CAcreateserial -days 3650 -i
 	}
 ~~~
 
-## 使用例(2)
+## Example(2)
 
-* 不使用证书池。
-* 不使用双向认证。
-* client使用server.pem。
+* Not using certificates pool。
+* Disable mutual authentication。
+* Client uses server.pem。
 
 ### Server
 
@@ -288,17 +288,16 @@ conn = c
 
 
 
-## 可选
+## Something optional
 
-### 生成crt
+### Create crt
 
 ~~~ shell
 openssl req -new -x509 -key ca.key -out ca.crt -days 36500
 ~~~
 
-### 查看crt信息
+### Check *.crt info
 
 ~~~ shell
 openssl x509 -in server.crt -text -noout
 ~~~
-
