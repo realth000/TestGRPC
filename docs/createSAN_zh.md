@@ -57,7 +57,12 @@ openssl x509 \
 openssl req -new -x509 -key ca.key -out ca.pem -days 36500
 ~~~
 
-原文没有这一步，生成client.pem时会出错
+* 这一步是生成自签名证书，可以用，但作为CA的证书来说，自签名的没有保障，会在认证时失败（不认CA）。
+* 如果不使用自签名证书，跳过这一步，在client向server发起连接时``InsecureSkipVerify``置为``true``，``VerifyConnection``改为空，自行校验即可。
+
+* 如果使用自签名证书，在client向server发起连接时``InsecureSkipVerify``置为``false``，``VerifyConnection``的值函数选择安全且有效的验证函数。
+  * 若``InsecureSkipVerify=true``，则会跳过客户端验证服务端身份的过程。
+  * 若``VerifyConnection``设置值函数，则会用该函数验证服务器身份。默认的函数来自[github的issue](https://github.com/golang/go/issues/40748)，尚未验证是否可靠。
 
 ## 生成server证书
 
@@ -69,7 +74,7 @@ openssl genrsa -out server.key 4096
 
 ### 创建一个conf 用来生成csr
 
-`` vim server.conf``填入以下内容：
+`` vim server.conf``填入以下内容，DNS.1和IP.1根据实际server的IP来：
 
 > [ req ]
 > default_bits = 4096
@@ -137,10 +142,12 @@ openssl req -new -key client.key -out client.csr -config server.conf
 openssl x509 -req -sha256 -CA ca.pem -CAkey ca.key -CAcreateserial -days 3650 -in client.csr -out client.pem -extensions req_ext -extfile server.conf
 ~~~
 
-## 使用例
+## 使用例(1)
 
-* 原文使用例。
+* [原文](https://juejin.cn/post/7025504258371878919)使用例。
 * 使用证书池。
+* 使用双向认证。
+* 使用自签名证书时需要按前文所说修改``InsecureSkipVerify``和``VerifyConnection``。
 * client使用client.pem和client.key。
 
 ### server
@@ -230,9 +237,10 @@ openssl x509 -req -sha256 -CA ca.pem -CAkey ca.key -CAcreateserial -days 3650 -i
 	}
 ~~~
 
-## 使用例
+## 使用例(2)
 
 * 不使用证书池。
+* 不使用双向认证。
 * client使用server.pem。
 
 ### Server
