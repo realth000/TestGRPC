@@ -4,17 +4,17 @@ import "os"
 import "github.com/pelletier/go-toml/v2"
 
 type ClientConfig struct {
-	ServerUrl    string `toml:"server_url"`
-	ServerPort   string `toml:"server_port"`
-	ClientName   string `toml:"client_name"`
-	DisableSSL   bool   `toml:"disable_ssl"`
-	MutualAuth   bool   `toml:"mutual_auth"`
-	SayHello     bool   `toml:"say_hello"`
-	DownloadFile bool   `toml:"download_file"`
-	DownloadPath string `toml:"download_path"`
-	Cert         string `toml:"cert"`
-	Key          string `toml:"key"`
-	CACert       string `toml:"ca_cert"`
+	ServerUrl        string `toml:"server_url"`
+	ServerPort       uint   `toml:"server_port"`
+	ClientName       string `toml:"client_name"`
+	SSL              bool   `toml:"ssl"`
+	SSLCert          string `toml:"ssl_cert"`
+	SSLKey           string `toml:"ssl_key"`
+	SSLCACert        string `toml:"ssl_ca_cert"`
+	MutualAuth       bool   `toml:"mutual_auth"`
+	SayHello         bool   `toml:"say_hello"`
+	DownloadFile     bool   `toml:"download_file"`
+	DownloadFilePath string `toml:"download_file_path"`
 }
 
 func LoadConfigFile(filePath string, clientConfig *ClientConfig) error {

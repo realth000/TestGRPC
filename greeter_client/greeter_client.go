@@ -26,10 +26,10 @@ var (
 	flagName       = kingpin.Flag("client-name", "Client name.").Short('n').String()
 
 	flagSSL        = kingpin.Flag("ssl", "Use SSL in connecting with server. Use --no-ssl to disable ssl.").Default("true").Bool()
-	flagMutualAuth = kingpin.Flag("mutual-auth", "Mutual authentication in SSL handshake.").Default("true").Bool()
 	flagSSLCert    = kingpin.Flag("cert", "SSL credential file[*.pem] path.").String()
 	flagSSLKey     = kingpin.Flag("key", "SSL private key file[*.key] path.").String()
 	flagSSLCACert  = kingpin.Flag("ca-cert", "SSL CA credential file[*.pem] path.").String()
+	flagMutualAuth = kingpin.Flag("mutual-auth", "Mutual authentication in SSL handshake.").Default("true").Bool()
 
 	cmdSayHello     = kingpin.Command("say-hello", "Say hello to server, used for testing.")
 	cmdDownloadFile = kingpin.Command("download-file", "Download file from server.")
@@ -45,47 +45,61 @@ func loadConfigFile() {
 	if err != nil {
 		log.Fatalf("can not load config file:%v", err)
 	}
-	fmt.Println(cc)
-	//flag.Visit(func(s *flag.Flag) {
-	//	switch s.Name {
-	//	case "u":
-	//		flagServerUrl =
-	//	}
-	//})
+	*flagServerUrl = cc.ServerUrl
+	*flagServerPort = cc.ServerPort
+	*flagName = cc.ClientName
+	*flagSSL = cc.SSL
+	*flagSSLCert = cc.SSLCert
+	*flagSSLKey = cc.SSLKey
+	*flagSSLCACert = cc.SSLCACert
+	*flagMutualAuth = cc.MutualAuth
+	*flagFileName = cc.DownloadFilePath
 }
 
 func checkFlag() {
-	//if flagServerUrl == "" {
-	//	flagServerUrl = "localhost"
-	//}
-	//if flagServerPort == 0 {
-	//	log.Fatalln("Server port not set")
-	//} else if flagServerPort > 65535 {
-	//	log.Fatalf("Invalid port: %d\n", flagServerPort)
-	//}
-	//if actionDownloadFile && argDownloadPath == "" {
-	//	log.Fatalf("Download path not set")
-	//}
-	//if !flagDisableSSL {
-	//	if argSSLCertPath == "" {
-	//		log.Fatalf("ssl enabled, but credential file[*.pem] not loaded")
-	//	}
-	//	if flagMutualAuth {
-	//		if argSSLKeyPath == "" {
-	//			log.Fatalf("ssl enabled, but private key file[*.key] not loaded")
-	//		}
-	//		if argSSLCACertPath == "" {
-	//			log.Fatalf("mutual authentication enabled, but CA credential file[*.pem] not loaded")
-	//		}
-	//	}
-	//}
+	if *flagServerUrl == "" {
+		*flagServerUrl = "localhost"
+	}
+	if *flagServerPort == 0 {
+		log.Fatalln("Server port not set")
+	} else if *flagServerPort > 65535 {
+		log.Fatalf("Invalid port: %d\n", *flagServerPort)
+	}
+	switch kingpin.Parse() {
+	case "say-hello":
+	case "download-file":
+		if *flagFileName == "" {
+			log.Fatalf("Download path not set")
+		}
+	}
+
+	if *flagSSL {
+		if *flagSSLCert == "" {
+			log.Fatalf("ssl enabled, but credential file[*.pem] not loaded")
+		}
+		if *flagMutualAuth {
+			if *flagSSLKey == "" {
+				log.Fatalf("ssl enabled, but private key file[*.key] not loaded")
+			}
+			if *flagSSLCACert == "" {
+				log.Fatalf("mutual authentication enabled, but CA credential file[*.pem] not loaded")
+			}
+		}
+	}
 }
 
 func main() {
-	// Setup connection.
+	// Setup flags.
+	// Init flags? TODO: Do NOT use kingpin.Parse() in the line below.
 	kingpin.Parse()
+	// Load flags from config file.
 	loadConfigFile()
+	// Override flags with command line flags.
+	kingpin.Parse()
+	// Check if all flags legal.
 	checkFlag()
+
+	// Setup connection.
 	var conn *grpc.ClientConn
 	if !*flagSSL {
 		//conn, err := grpc.Dial(address, grpc.WithInsecure()) // deprecated
@@ -146,9 +160,7 @@ func main() {
 			conn = c
 		}
 	}
-
 	defer conn.Close()
-
 	// Contact the server and print out its response.
 	var name string
 	if *flagName == "" {
@@ -156,7 +168,6 @@ func main() {
 	} else {
 		name = *flagName
 	}
-
 	switch kingpin.Parse() {
 	case "say-hello":
 		r, err := SayHello(conn, name)
