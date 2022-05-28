@@ -2,6 +2,7 @@
 
 if [ ! -f ca.conf -o ! -f server.conf ];then
 	echo 'ca.conf or server.conf not found, exit'
+	exit
 fi
 
 function auto_remove() {
