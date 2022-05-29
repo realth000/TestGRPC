@@ -33,7 +33,7 @@ func LoadPermission(loadPath string) error {
 		}
 	}
 
-	// Permit download files in current directory if no permit paths loaded.
+	// PermitFiles download files in current directory if no permit paths loaded.
 	if len(permitDirs) == 0 {
 		currentPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
